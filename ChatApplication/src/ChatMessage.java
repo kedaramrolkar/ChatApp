@@ -3,14 +3,16 @@ import java.io.*;
 public class ChatMessage implements Serializable {
     protected static final long serialVersionUID = 1112122200L;
 
-    static final int MESSAGE = 0, LOGOUT = 1;
+    static final int Broadcast = 1, Unicast = 2, Blockcast = 3, Logout=4;
 
     private int type;
     private String message;
-
-    ChatMessage(int type, String message) {
+    private String userName;
+    
+    ChatMessage(int type, String userName, String message) {
         this.type = type;
         this.message = message;
+        this.userName = userName;
     }
 
     int getType() {
@@ -19,5 +21,9 @@ public class ChatMessage implements Serializable {
     
     String getMessage() {
         return message;
+    }
+    
+    String getUserName() {
+        return userName;
     }
 }

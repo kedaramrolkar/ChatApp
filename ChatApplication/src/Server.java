@@ -26,8 +26,8 @@ public class Server {
 		}
 
 		try {
+			System.out.println("Waiting on port " + port);
 			while (true) {
-				System.out.println("Waiting on port " + port);
 				Socket socket = serverSocket.accept();
 				ClientThread t = new ClientThread(socket);
 				clientList.add(t);
@@ -56,22 +56,45 @@ public class Server {
 	}
 
 	private synchronized void broadcast(String message) {
-
-		System.out.println(message);
 		for (int i = clientList.size() - 1; i >= 0; i--) {
 			ClientThread ct = clientList.get(i);
 			ct.writeMsg(message);
 		}
+		System.out.println("Broadcast Message sent");
 	}
-
-	synchronized void remove(int id) {
-		for (int i = 0; i < clientList.size(); ++i) {
+	
+	private synchronized void unicast(String receiverUsername, String message) {
+		for (int i = clientList.size() - 1; i >= 0; i--) {
+			
 			ClientThread ct = clientList.get(i);
-			if (ct.id == id) {
-				clientList.remove(i);
-				return;
+			if(ct.username.equalsIgnoreCase(receiverUsername)){
+				ct.writeMsg(message);
 			}
 		}
+		System.out.println("Unicast Message sent");
+	}
+	
+	private synchronized void blockcast(String blockerUsername, String message) {
+		for (int i = clientList.size() - 1; i >= 0; i--) {
+			ClientThread ct = clientList.get(i);
+			if(!ct.username.equalsIgnoreCase(blockerUsername)){
+				ct.writeMsg(message);
+			}
+		}
+		System.out.println("Blockcast Message sent");
+	}
+
+	synchronized void remove(String removerUsername) {
+		ClientThread remover = null;
+		for (int i=0; i < clientList.size(); ++i) {
+			ClientThread ct = clientList.get(i);
+			if (ct.username.equalsIgnoreCase(removerUsername)) {
+				remover = ct; 
+				break;
+			}
+		}
+		clientList.remove(remover);
+		System.out.println(remover.username + " disconnected");
 	}
 
 	public static void main(String[] args) {
@@ -96,7 +119,7 @@ public class Server {
 				outputStream = new ObjectOutputStream(socket.getOutputStream());
 				inputStream = new ObjectInputStream(socket.getInputStream());
 				username = (String) inputStream.readObject();
-				System.out.println(username + " just connected.");
+				System.out.println(username + " connected.");
 			} catch (IOException e) {
 				System.out
 						.println("Exception creating new Input/output Streams: "
@@ -109,31 +132,38 @@ public class Server {
 		}
 
 		public void run() {
-
-			while (true) {
+			boolean continueProcess = true;
+			while (continueProcess) {
 				try {
 					cm = (ChatMessage) inputStream.readObject();
 				} catch (Exception e) {
 					System.out.println("Error in Stream " + e);
 					break;
 				}
-
 				String message = cm.getMessage();
 
 				switch (cm.getType()) {
-
-					case ChatMessage.MESSAGE:
-						broadcast(username + ": " + message);
+					case ChatMessage.Broadcast:
+						broadcast("@" + username + ": " + message);
 					break;
 
-					case ChatMessage.LOGOUT:
-						System.out.println(username
-							+ " disconnected with a LOGOUT message.");
+					case ChatMessage.Unicast:
+						String receiver = cm.getUserName();
+						unicast(receiver, "@" + username + ": " + message);
+					break;
+					
+					case ChatMessage.Blockcast:
+						String blockerUsername = cm.getUserName();
+						blockcast(blockerUsername, "@" + username + ": " + message);
+					break;
+					
+					case ChatMessage.Logout:
+						continueProcess = false;
 					break;
 				}
 			}
+			remove(username);
 			close();
-			remove(id);
 		}
 
 		private boolean writeMsg(String msg) {

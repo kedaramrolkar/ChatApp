@@ -9,13 +9,13 @@ public class Client  {
 	private ObjectOutputStream outputStream;		// to write on the socket
 	private Socket socket;
 
-	private String server, username;
+	private String username, server;
 	private int port;
 
-	public Client(String s, int p, String u) {
-		server = s;
+	public Client(int p, String u) {
 		port = p;
-		username = u;		
+		username = u;
+		server = "127.0.0.1";
 	}
 	
 	private void disconnect() {
@@ -90,49 +90,71 @@ public class Client  {
 		}
 	}
 	
-	/*
-	 * java Client username portNumber serverAddress
-	 */
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 
 		int portNumber = Integer.parseInt(args[1]);
-		String serverAddress = args[2];
 		String userName = args[0];
 
-		Client client = new Client(serverAddress, portNumber, userName);
+		Client client = new Client(portNumber, userName);
 		if(!client.start()){
 			return;			
 		}
 		
 		Scanner scan = new Scanner(System.in);
-
-		while(true) {
-
-			System.out.println("Enter the message");
-			String message = scan.nextLine();
-			System.out.println("Option - \n1)Broadcast \n2)Unicast");			
+		boolean continueProcess = true;
+		
+		while(continueProcess) {
+			System.out.println("Enter Action (1.Broadcast 2.Unicast 3.Blockcast 4.Logout): ");			
+			int choice=0;
+			try{
+				choice = Integer.parseInt(scan.nextLine());
+			}
+			catch(Exception ex){
+			}
 			
-			int choice = Integer.parseInt(scan.nextLine());
-			
-			switch(choice) {
-				case 1:
-					client.sendMessage(new ChatMessage(ChatMessage.MESSAGE, message));
-					break;
+			if(choice==4){
+				client.sendMessage(new ChatMessage(ChatMessage.Logout, userName, ""));
+				continueProcess = false;
+			}
+			else if(choice==1 || choice==2 || choice==3){
+				String username = null;
 				
-				case 2:					
-					System.out.println("Enter the receiver username");
-					String receiver = scan.nextLine();									
-					break;
-				//	if(msg.equalsIgnoreCase("LOGOUT")) {
-				//		client.sendMessage(new ChatMessage(ChatMessage.LOGOUT, ""));
-				//  }
+				if(choice==2 || choice==3){
+					System.out.println("Enter the "+(choice==2?"receiver":"blocked")+" Username: ");
+					username = scan.nextLine();
+				}
 				
-				case 3 : 
-					scan.close();
-					client.disconnect();	
-				break;
+				while(true){
+					System.out.println("Enter Type of Message (1.Text 2.File): ");
+					int choice2 = 0;
+					try{
+						choice2 = Integer.parseInt(scan.nextLine());
+					}
+					catch(Exception ex){
+					}
+					
+					if(choice2==1){
+						System.out.print("Enter Text: ");
+						String message = scan.nextLine();
+						client.sendMessage(new ChatMessage(choice, username, message));
+						break;
+					}
+					else if(choice2==2){
+						System.out.println("Enter filepath: ");
+						String filePath = scan.nextLine();
+						System.out.println("File Copied");
+					}
+					else{
+						System.out.println("Invalid Entry..\n");
+					}
+				}
+			}
+			else{
+				System.out.println("Invalid Entry. Please enter a valid number\n");
 			}
 		}
+		scan.close();
+		client.disconnect();
 	}
 
 	class ListenFromServer extends Thread {
@@ -143,7 +165,7 @@ public class Client  {
 					String msg = (String) inputStream.readObject();
 					System.out.println(msg);
 				} catch(Exception e) {
-					System.out.println("Error while listening " + e);
+					System.out.println("Successfully Loggedout");
 					break;
 				}
 			}
