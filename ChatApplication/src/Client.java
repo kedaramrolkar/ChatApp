@@ -9,12 +9,13 @@ public class Client  {
 	private ObjectOutputStream outputStream;		// to write on the socket
 	private Socket socket;
 
-	private String username;
+	private String username, server;
 	private int port;
 
 	public Client(int p, String u) {
 		port = p;
-		username = u;		
+		username = u;
+		server = "127.0.0.1";
 	}
 	
 	private void disconnect() {
@@ -48,7 +49,7 @@ public class Client  {
 	public boolean start() {
 
 		try {
-			socket = new Socket(port);
+			socket = new Socket(server, port);
 		} catch(Exception e) {
 			System.out.println("Error connectiong to server:" + e);
 			return false;
@@ -92,10 +93,9 @@ public class Client  {
 	public static void main(String[] args) throws InterruptedException {
 
 		int portNumber = Integer.parseInt(args[1]);
-		String serverAddress = args[2];
 		String userName = args[0];
 
-		Client client = new Client(serverAddress, portNumber, userName);
+		Client client = new Client(portNumber, userName);
 		if(!client.start()){
 			return;			
 		}
