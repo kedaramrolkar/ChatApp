@@ -1,5 +1,7 @@
 
 import java.net.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.io.*;
 import java.util.*;
 
@@ -51,7 +53,7 @@ public class Client  {
 		try {
 			socket = new Socket(server, port);
 		} catch(Exception e) {
-			System.out.println("Error connectiong to server:" + e);
+			System.out.println("Error connecting to server:" + e);
 			return false;
 		}
 		
@@ -82,11 +84,31 @@ public class Client  {
 	}
 
 	void sendMessage(ChatMessage msg) {
-		try {
-			outputStream.writeObject(msg);
-			outputStream.flush();
-		} catch(IOException e) {
-			System.out.println("Exception writing to server: " + e);
+		
+		if(msg.getOperation()==false){
+			try {
+				outputStream.writeObject(msg);
+				outputStream.flush();
+			} catch(IOException e) {
+				System.out.println("Exception writing to server: " + e);
+			}
+		} else {
+			FileInputStream fileStream = null;
+		    BufferedInputStream bufferedStream = null;
+		    
+		    String fileName = msg.getMessage();
+		    File toSend = new File(fileName);	//contains filename
+	        msg.fileBytes  = new byte [(int)toSend.length()];
+
+	        try {
+				fileStream = new FileInputStream(toSend);
+				bufferedStream = new BufferedInputStream(fileStream);
+				bufferedStream.read(msg.fileBytes, 0, msg.fileBytes.length);
+				outputStream.writeObject(msg);
+				outputStream.flush();
+			} catch (Exception e) {
+				System.out.println("Error in sending file contents" + e);
+			}
 		}
 	}
 	
@@ -113,7 +135,7 @@ public class Client  {
 			}
 			
 			if(choice==4){
-				client.sendMessage(new ChatMessage(ChatMessage.Logout, userName, ""));
+				client.sendMessage(new ChatMessage(ChatMessage.Logout, userName, "", false));
 				continueProcess = false;
 			}
 			else if(choice==1 || choice==2 || choice==3){
@@ -136,16 +158,16 @@ public class Client  {
 					if(choice2==1){
 						System.out.print("Enter Text: ");
 						String message = scan.nextLine();
-						client.sendMessage(new ChatMessage(choice, username, message));
-						break;
+						client.sendMessage(new ChatMessage(choice, username, message, false));
 					}
 					else if(choice2==2){
 						System.out.println("Enter filepath: ");
 						String filePath = scan.nextLine();
-						System.out.println("File Copied");
+						client.sendMessage(new ChatMessage(choice, username, filePath, true));
 					}
 					else{
 						System.out.println("Invalid Entry..\n");
+						break;
 					}
 				}
 			}
@@ -158,15 +180,48 @@ public class Client  {
 	}
 
 	class ListenFromServer extends Thread {
-
+		
+		public final static int FILE_SIZE = 6022386; // file size temporary hard coded
+        public final static String location = 
+        		"C:\\Users\\Hamza Karachiwala\\Documents\\Fall 16\\Networks\\Project\\Client\\";
+		
 		public void run() {
+			FileOutputStream outputStream = null;
+		    BufferedOutputStream bufferedStream = null;
+
 			while(true) {
 				try {
-					String msg = (String) inputStream.readObject();
-					System.out.println(msg);
+					ChatMessage msg = (ChatMessage) inputStream.readObject();
+					if(!msg.getOperation()) {	//if not file operation
+						System.out.println(msg.getMessage());
+					} else {					// write file						
+						String filePath = msg.getMessage();
+						Path p = Paths.get(filePath);
+						String fileName = p.getFileName().toString();
+						
+					    outputStream = new FileOutputStream(location + fileName);	  //has file name
+					    bufferedStream = new BufferedOutputStream(outputStream);					    
+					    bufferedStream.write(msg.fileBytes, 0 , msg.fileBytes.length);						
+					    bufferedStream.flush();
+					}
 				} catch(Exception e) {
-					System.out.println("Successfully Loggedout");
+					System.out.println("Successfully Logged Out" +  e);
 					break;
+				} finally {
+					if (outputStream != null) {
+						try {
+							outputStream.close();
+						} catch (IOException e) {
+							System.out.println("Error closing output stream" + e);
+						}
+					}
+					if (bufferedStream != null){
+						try {
+							bufferedStream.close();
+						} catch (IOException e) {
+							System.out.println("Error closing buffered stream" + e);
+						}
+					}
 				}
 			}
 		}
