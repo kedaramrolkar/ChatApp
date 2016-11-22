@@ -1,7 +1,5 @@
 
 import java.net.*;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.io.*;
 import java.util.*;
 
@@ -182,8 +180,6 @@ public class Client  {
 	class ListenFromServer extends Thread {
 		
 		public final static int FILE_SIZE = 6022386; // file size temporary hard coded
-        public final static String location = 
-        		"C:\\Users\\Hamza Karachiwala\\Documents\\Fall 16\\Networks\\Project\\Client\\";
 		
 		public void run() {
 			FileOutputStream outputStream = null;
@@ -195,11 +191,7 @@ public class Client  {
 					if(!msg.getOperation()) {	//if not file operation
 						System.out.println(msg.getMessage());
 					} else {					// write file						
-						String filePath = msg.getMessage();
-						Path p = Paths.get(filePath);
-						String fileName = p.getFileName().toString();
-						
-					    outputStream = new FileOutputStream(location + fileName);	  //has file name
+					    outputStream = new FileOutputStream(msg.getMessage());	  //has file name
 					    bufferedStream = new BufferedOutputStream(outputStream);					    
 					    bufferedStream.write(msg.fileBytes, 0 , msg.fileBytes.length);						
 					    bufferedStream.flush();

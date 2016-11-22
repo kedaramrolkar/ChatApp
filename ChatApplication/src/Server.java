@@ -3,6 +3,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 
 public class Server {
@@ -64,16 +66,27 @@ public class Server {
 	}
 	
 	private synchronized void broadcastFile(ChatMessage message) {
+
+		final String location = 
+        		"C:\\Users\\Hamza Karachiwala\\Documents\\Fall 16\\Networks\\Project\\";
+
+		String filePath = message.getMessage();
+		Path p = Paths.get(filePath);
+		String fileName = p.getFileName().toString();
+		
 		for (int i = clientList.size() - 1; i >= 0; i--) {
 			ClientThread ct = clientList.get(i);
+			String clientName = ct.username;
+			String fileToWrite = location + "\\" + clientName + "\\" + fileName;
+			message.setMessage(fileToWrite);
 			ct.writeFile(message);
 		}
 		System.out.println("File broadcasted");
 	}
 
 	private synchronized void unicast(String receiverUsername, ChatMessage message) {
-		for (int i = clientList.size() - 1; i >= 0; i--) {
-			
+		
+		for (int i = clientList.size() - 1; i >= 0; i--) {			
 			ClientThread ct = clientList.get(i);
 			if(ct.username.equalsIgnoreCase(receiverUsername)){
 				ct.writeMsg(message);
@@ -83,11 +96,22 @@ public class Server {
 	}
 	
 	private synchronized void unicastFile(String receiverUsername, ChatMessage message) {
+
+		final String location = 
+        		"C:\\Users\\Hamza Karachiwala\\Documents\\Fall 16\\Networks\\Project\\";
+
+		String filePath = message.getMessage();
+		Path p = Paths.get(filePath);
+		String fileName = p.getFileName().toString();
+		
 		for (int i = clientList.size() - 1; i >= 0; i--) {
 			
 			ClientThread ct = clientList.get(i);
 			if(ct.username.equalsIgnoreCase(receiverUsername)){
-				ct.writeMsg(message);
+				String clientName = ct.username;
+				String fileToWrite = location + "\\" + clientName + "\\" + fileName;
+				message.setMessage(fileToWrite);
+				ct.writeFile(message);
 			}
 		}
 		System.out.println("File sent to recipient");

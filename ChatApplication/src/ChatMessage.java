@@ -19,6 +19,10 @@ public class ChatMessage implements Serializable {
         this.fileOperation = op;
     }
 
+    void setMessage(String m) {
+    	this.message = m;
+    }
+    
     int getType() {
         return type;
     }
