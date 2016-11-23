@@ -3,6 +3,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 
 public class Server {
@@ -55,7 +57,7 @@ public class Server {
 		}
 	}
 
-	private synchronized void broadcast(String message) {
+	private synchronized void broadcast(ChatMessage message) {
 		for (int i = clientList.size() - 1; i >= 0; i--) {
 			ClientThread ct = clientList.get(i);
 			ct.writeMsg(message);
@@ -63,9 +65,28 @@ public class Server {
 		System.out.println("Broadcast Message sent");
 	}
 	
-	private synchronized void unicast(String receiverUsername, String message) {
+	private synchronized void broadcastFile(ChatMessage message) {
+
+		final String location = 
+        		"C:\\Users\\Hamza Karachiwala\\Documents\\Fall 16\\Networks\\Project\\";
+
+		String filePath = message.getMessage();
+		Path p = Paths.get(filePath);
+		String fileName = p.getFileName().toString();
+		
 		for (int i = clientList.size() - 1; i >= 0; i--) {
-			
+			ClientThread ct = clientList.get(i);
+			String clientName = ct.username;
+			String fileToWrite = location + "\\" + clientName + "\\" + fileName;
+			message.setMessage(fileToWrite);
+			ct.writeFile(message);
+		}
+		System.out.println("File broadcasted");
+	}
+
+	private synchronized void unicast(String receiverUsername, ChatMessage message) {
+		
+		for (int i = clientList.size() - 1; i >= 0; i--) {			
 			ClientThread ct = clientList.get(i);
 			if(ct.username.equalsIgnoreCase(receiverUsername)){
 				ct.writeMsg(message);
@@ -74,7 +95,30 @@ public class Server {
 		System.out.println("Unicast Message sent");
 	}
 	
-	private synchronized void blockcast(String blockerUsername, String message) {
+	private synchronized void unicastFile(String receiverUsername, ChatMessage message) {
+
+		final String location = 
+        		"C:\\Users\\Hamza Karachiwala\\Documents\\Fall 16\\Networks\\Project\\";
+
+		String filePath = message.getMessage();
+		Path p = Paths.get(filePath);
+		String fileName = p.getFileName().toString();
+		
+		for (int i = clientList.size() - 1; i >= 0; i--) {
+			
+			ClientThread ct = clientList.get(i);
+			if(ct.username.equalsIgnoreCase(receiverUsername)){
+				String clientName = ct.username;
+				String fileToWrite = location + "\\" + clientName + "\\" + fileName;
+				message.setMessage(fileToWrite);
+				ct.writeFile(message);
+			}
+		}
+		System.out.println("File sent to recipient");
+	}
+
+	
+	private synchronized void blockcast(String blockerUsername, ChatMessage message) {
 		for (int i = clientList.size() - 1; i >= 0; i--) {
 			ClientThread ct = clientList.get(i);
 			if(!ct.username.equalsIgnoreCase(blockerUsername)){
@@ -140,21 +184,36 @@ public class Server {
 					System.out.println("Error in Stream " + e);
 					break;
 				}
-				String message = cm.getMessage();
-
+				
+				boolean isFileOp = cm.getOperation();
+				String message=null;
+				String newMessage = null;
+				if(!isFileOp) {
+					message = cm.getMessage();
+					newMessage = "@" + username + ": " + message;
+				}
+				
 				switch (cm.getType()) {
 					case ChatMessage.Broadcast:
-						broadcast("@" + username + ": " + message);
+						if(!isFileOp) {
+							broadcast(new ChatMessage(ChatMessage.Broadcast, cm.getUserName(), newMessage, cm.getOperation()));
+						} else {
+							broadcastFile(cm);
+						}
 					break;
 
 					case ChatMessage.Unicast:
 						String receiver = cm.getUserName();
-						unicast(receiver, "@" + username + ": " + message);
+						if(!isFileOp) {
+							unicast(receiver, new ChatMessage(ChatMessage.Unicast, cm.getUserName(), newMessage, cm.getOperation()));
+						} else {
+							unicastFile(receiver, cm);
+						}
 					break;
 					
 					case ChatMessage.Blockcast:
 						String blockerUsername = cm.getUserName();
-						blockcast(blockerUsername, "@" + username + ": " + message);
+						blockcast(blockerUsername, new ChatMessage(ChatMessage.Blockcast, cm.getUserName(), newMessage, cm.getOperation()));
 					break;
 					
 					case ChatMessage.Logout:
@@ -166,7 +225,7 @@ public class Server {
 			close();
 		}
 
-		private boolean writeMsg(String msg) {
+		private boolean writeMsg(ChatMessage msg) {
 
 			if (!socket.isConnected()) {
 				close();
@@ -178,6 +237,23 @@ public class Server {
 				outputStream.flush();
 			} catch (Exception e) {
 				System.out.println("Error sending message to " + username);
+				System.out.println(e.toString());
+			}
+			return true;
+		}
+
+		private boolean writeFile(ChatMessage message) {
+
+			if (!socket.isConnected()) {
+				close();
+				return false;
+			}
+
+			try {
+				outputStream.writeObject(message);
+				outputStream.flush();
+			} catch (Exception e) {
+				System.out.println("Error sending file to " + username);
 				System.out.println(e.toString());
 			}
 			return true;

@@ -8,13 +8,21 @@ public class ChatMessage implements Serializable {
     private int type;
     private String message;
     private String userName;
+    private boolean fileOperation;
+
+    public byte[] fileBytes;	//contains file contents
     
-    ChatMessage(int type, String userName, String message) {
+    ChatMessage(int type, String userName, String message, boolean op) {
         this.type = type;
         this.message = message;
         this.userName = userName;
+        this.fileOperation = op;
     }
 
+    void setMessage(String m) {
+    	this.message = m;
+    }
+    
     int getType() {
         return type;
     }
@@ -26,4 +34,9 @@ public class ChatMessage implements Serializable {
     String getUserName() {
         return userName;
     }
+    
+    boolean getOperation() {
+    	return fileOperation;
+    }
+    
 }
