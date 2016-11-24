@@ -1,3 +1,4 @@
-ChatApplication\bin
-ChatApplication\copy-bin.bat
-ChatApplication\sampleFile.txt
+ChatApplication/bin
+ChatApplication/copy-bin.bat
+ChatApplication/sampleFile.txt
+ChatApplication/.externalToolBuilders/
