@@ -1,5 +1,7 @@
 
 import java.net.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.io.*;
 import java.util.*;
 
@@ -111,11 +113,14 @@ public class Client  {
 		    BufferedInputStream bufferedStream = null;
 		    
 		    //message field will contain filename
-		    String fileName = msg.getMessage();
-		    File toSend = new File(fileName);	
+		    String filePath = msg.getMessage();
+		    File toSend = new File(filePath);	
+			Path p = Paths.get(filePath);
+			String fileName = p.getFileName().toString();
+			msg.setMessage(fileName);
 	        msg.fileBytes  = new byte [(int)toSend.length()];
 
-	        //read the file into byte array of ChatMessage
+	        //read the file into byte array of ChatMessage 
 	        try {
 				fileStream = new FileInputStream(toSend);
 				bufferedStream = new BufferedInputStream(fileStream);
@@ -150,46 +155,42 @@ public class Client  {
 		
 		while(continueProcess) {
 			System.out.println("Options 1.Broadcast 2.Unicast 3.Blockcast 4.Logout");			
-			int choice=0;
+			int castChoice=0;
 			try{
-				choice = Integer.parseInt(scan.nextLine());
+				castChoice = Integer.parseInt(scan.nextLine());
 			} catch(Exception ex){
 				System.out.println("Error reading option");
 			}
 			
 			//logout
-			if(choice==4){		
+			if(castChoice==4){		
 				client.sendMessage(new ChatMessage(ChatMessage.Logout, userName, "", false));
 				continueProcess = false;
-			} else if(choice==1 || choice==2 || choice==3) {
-
+			} else if(castChoice==1 || castChoice==2 || castChoice==3) {
 				String username = null;				
-				if(choice==2 || choice==3) {
-					System.out.println((choice==2 ? "Enter Recipient Username " : "Enter Username to be left out"));
+				if(castChoice==2 || castChoice==3) {
+					System.out.println((castChoice==2 ? "Enter Recipient Username " : "Enter Username to be left out"));
 					username = scan.nextLine();
 				}
-				
+				else{
+					username = userName;
+				}
 				System.out.println("Operation Type : 1.Text 2.File");
-				int choice2 = 0;
+				int MsgFileChoice = 0;
 				try {
-						choice2 = Integer.parseInt(scan.nextLine());
+						MsgFileChoice = Integer.parseInt(scan.nextLine());
 				} catch(Exception ex){
 					System.out.println("Error reading type");
 				}
 					
-				if(choice2==1){
+				if(MsgFileChoice==1){
 						System.out.print("Enter Text: ");
 						String message = scan.nextLine();
-						client.sendMessage(new ChatMessage(choice, username, message, false));
-				} else if(choice2==2){
-					if(choice==3){
-						System.out.println("File operations not available for blockcast");
-						
-					} else {
+						client.sendMessage(new ChatMessage(castChoice, username, message, false));
+				} else if(MsgFileChoice==2){
 						System.out.println("Enter filepath: ");
 						String filePath = scan.nextLine();
-						client.sendMessage(new ChatMessage(choice, username, filePath, true));						
-					}
+						client.sendMessage(new ChatMessage(castChoice, username, filePath, true));						
 				} else{
 						System.out.println("Invalid Entry..\n");
 				}

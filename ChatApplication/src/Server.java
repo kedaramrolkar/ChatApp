@@ -57,35 +57,30 @@ public class Server {
 		}
 	}
 
-	private synchronized void broadcast(ChatMessage message) {
+	private synchronized void broadcast(String sender, ChatMessage message) {
 		for (int i = clientList.size() - 1; i >= 0; i--) {
 			ClientThread ct = clientList.get(i);
+			if(ct.username.equalsIgnoreCase(sender)){
+				continue;
+			}
 			ct.writeMsg(message);
 		}
 		System.out.println("Broadcast Message sent");
 	}
 	
-	private synchronized void broadcastFile(ChatMessage message) {
-
-		final String location = 
-        		"C:\\Users\\Hamza Karachiwala\\Documents\\Fall 16\\Networks\\Project\\";
-
-		String filePath = message.getMessage();
-		Path p = Paths.get(filePath);
-		String fileName = p.getFileName().toString();
-		
+	private synchronized void broadcastFile(String sender, ChatMessage message) {
 		for (int i = clientList.size() - 1; i >= 0; i--) {
 			ClientThread ct = clientList.get(i);
-			String clientName = ct.username;
-			String fileToWrite = location + "\\" + clientName + "\\" + fileName;
-			message.setMessage(fileToWrite);
+			if(ct.username.equalsIgnoreCase(sender)){
+				continue;
+			}
 			ct.writeFile(message);
 		}
 		System.out.println("File broadcasted");
 	}
 
-	private synchronized void unicast(String receiverUsername, ChatMessage message) {
-		
+	private synchronized void unicast(String sender, ChatMessage message) {
+		String receiverUsername = message.getUserName();
 		for (int i = clientList.size() - 1; i >= 0; i--) {			
 			ClientThread ct = clientList.get(i);
 			if(ct.username.equalsIgnoreCase(receiverUsername)){
@@ -95,22 +90,11 @@ public class Server {
 		System.out.println("Unicast Message sent");
 	}
 	
-	private synchronized void unicastFile(String receiverUsername, ChatMessage message) {
-
-		final String location = 
-        		"C:\\Users\\Hamza Karachiwala\\Documents\\Fall 16\\Networks\\Project\\";
-
-		String filePath = message.getMessage();
-		Path p = Paths.get(filePath);
-		String fileName = p.getFileName().toString();
-		
+	private synchronized void unicastFile(String sender, ChatMessage message) {
+		String receiverUsername = message.getUserName();
 		for (int i = clientList.size() - 1; i >= 0; i--) {
-			
 			ClientThread ct = clientList.get(i);
 			if(ct.username.equalsIgnoreCase(receiverUsername)){
-				String clientName = ct.username;
-				String fileToWrite = location + "\\" + clientName + "\\" + fileName;
-				message.setMessage(fileToWrite);
 				ct.writeFile(message);
 			}
 		}
@@ -118,11 +102,23 @@ public class Server {
 	}
 
 	
-	private synchronized void blockcast(String blockerUsername, ChatMessage message) {
+	private synchronized void blockcast(String sender, ChatMessage message) {
+		String blockerUsername = message.getUserName();
 		for (int i = clientList.size() - 1; i >= 0; i--) {
 			ClientThread ct = clientList.get(i);
-			if(!ct.username.equalsIgnoreCase(blockerUsername)){
+			if(!(ct.username.equalsIgnoreCase(blockerUsername) || ct.username.equalsIgnoreCase(sender))){
 				ct.writeMsg(message);
+			}
+		}
+		System.out.println("Blockcast Message sent");
+	}
+	
+	private synchronized void blockcastFile(String sender, ChatMessage message) {
+		String blockerUsername = message.getUserName();
+		for (int i = clientList.size() - 1; i >= 0; i--) {
+			ClientThread ct = clientList.get(i);
+			if(!(ct.username.equalsIgnoreCase(blockerUsername) || ct.username.equalsIgnoreCase(sender))){
+				ct.writeFile(message);
 			}
 		}
 		System.out.println("Blockcast Message sent");
@@ -196,24 +192,26 @@ public class Server {
 				switch (cm.getType()) {
 					case ChatMessage.Broadcast:
 						if(!isFileOp) {
-							broadcast(new ChatMessage(ChatMessage.Broadcast, cm.getUserName(), newMessage, cm.getOperation()));
+							broadcast(username, new ChatMessage(ChatMessage.Broadcast, cm.getUserName(), newMessage, cm.getOperation()));
 						} else {
-							broadcastFile(cm);
+							broadcastFile(username, cm);
 						}
 					break;
 
 					case ChatMessage.Unicast:
-						String receiver = cm.getUserName();
 						if(!isFileOp) {
-							unicast(receiver, new ChatMessage(ChatMessage.Unicast, cm.getUserName(), newMessage, cm.getOperation()));
+							unicast(username, new ChatMessage(ChatMessage.Unicast, cm.getUserName(), newMessage, cm.getOperation()));
 						} else {
-							unicastFile(receiver, cm);
+							unicastFile(username, cm);
 						}
 					break;
 					
 					case ChatMessage.Blockcast:
-						String blockerUsername = cm.getUserName();
-						blockcast(blockerUsername, new ChatMessage(ChatMessage.Blockcast, cm.getUserName(), newMessage, cm.getOperation()));
+						if(!isFileOp) {
+							blockcast(username, new ChatMessage(ChatMessage.Blockcast, cm.getUserName(), newMessage, cm.getOperation()));
+						} else {
+							blockcastFile(username, cm);
+						}
 					break;
 					
 					case ChatMessage.Logout:
